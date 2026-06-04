@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with respective teaching or student coordinate parameters",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The firebase auth account uid block" },
+        "name": { "type": "string", "description": "The full display name" },
+        "email": { "type": "string", "format": "email", "description": "Authorized email address" },
+        "role": { "type": "string", "enum": ["teacher", "student"], "description": "Account system role" },
+        "studentId": { "type": "string", "description": "Optional numeric register card ID for student verification" },
+        "department": { "type": "string", "description": "Academic department or faculty branch" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "ISO creation timestamp" }
+      },
+      "required": ["uid", "name", "email", "role", "createdAt"]
+    },
+    "ClassSession": {
+      "title": "ClassSession",
+      "description": "Active tracking lecture session created by a teaching faculty member",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique session string key identifier" },
+        "teacherId": { "type": "string", "description": "Auth uid of the lecturing teacher" },
+        "className": { "type": "string", "description": "Course title name" },
+        "subjectCode": { "type": "string", "description": "Compact curriculum code e.g. CS-402" },
+        "sessionCode": { "type": "string", "description": "Unique random generated validation PIN signature" },
+        "isActive": { "type": "boolean", "description": "Active lock indicator" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Session creation date" },
+        "expiresAt": { "type": "string", "format": "date-time", "description": "Session closure limit" },
+        "durationMinutes": { "type": "number", "description": "Session total duration window" }
+      },
+      "required": ["id", "teacherId", "className", "subjectCode", "sessionCode", "isActive", "createdAt", "expiresAt", "durationMinutes"]
+    },
+    "AttendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Student attendance logging receipt verified via QR camera scan or pin input",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique check-in receipt key" },
+        "sessionId": { "type": "string", "description": "The parent class session id" },
+        "sessionCode": { "type": "string", "description": "The code embedded in scanned QR code" },
+        "className": { "type": "string", "description": "Determined class title" },
+        "subjectCode": { "type": "string", "description": "Course catalog course code" },
+        "studentId": { "type": "string", "description": "Checking student auth user uid" },
+        "studentName": { "type": "string", "description": "Student legal name" },
+        "studentEmail": { "type": "string", "format": "email", "description": "Logged student email identity" },
+        "studentRegNo": { "type": "string", "description": "Official student ID registration card index number" },
+        "scannedAt": { "type": "string", "format": "date-time", "description": "Check-in capture date" },
+        "checkInMethod": { "type": "string", "enum": ["qr_scan", "manual_code"], "description": "Capture hardware interface choice" },
+        "status": { "type": "string", "enum": ["present", "late"], "description": "Aesthetic presence metric" },
+        "department": { "type": "string", "description": "Student department branch" }
+      },
+      "required": ["id", "sessionId", "sessionCode", "className", "subjectCode", "studentId", "studentName", "studentEmail", "studentRegNo", "scannedAt", "checkInMethod", "status"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Users directory referencing personal details and account roles"
+    },
+    "sessions/{sessionId}": {
+      "schema": "ClassSession",
+      "description": "Class session documents created by instructors containing current access pin signatures"
+    },
+    "attendance/{recordId}": {
+      "schema": "AttendanceRecord",
+      "description": "Attendance verified logs matching individual class check-in entries"
+    }
+  }
+}

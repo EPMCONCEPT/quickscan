@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net (Pillar 1)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive Global Utilities (Pillar 3)
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 1. USER PROFILES
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data)
+                    && request.resource.data.role == resource.data.role; // Immutable role
+      allow delete: if false; // Profiles cannot be orphaned
+    }
+
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+          && data.email is string && data.email.size() > 0 && data.email.size() <= 200
+          && data.role is string && (data.role == "teacher" || data.role == "student")
+          && data.createdAt is string;
+    }
+
+    // 2. CLASS SESSIONS
+    match /sessions/{sessionId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      
+      // Teachers only can create sessions
+      allow create: if isSignedIn() 
+                    && isValidId(sessionId)
+                    && isValidSession(request.resource.data)
+                    && request.resource.data.teacherId == request.auth.uid;
+                    
+      // Only the hosting teacher can update/deactivate their sessions
+      allow update: if isSignedIn()
+                    && isValidSession(request.resource.data)
+                    && resource.data.teacherId == request.auth.uid
+                    && request.resource.data.teacherId == resource.data.teacherId
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && request.resource.data.sessionCode == resource.data.sessionCode;
+                    
+      allow delete: if false; // Keep persistent audits
+    }
+
+    function isValidSession(data) {
+      return data.id is string && data.id.size() <= 128
+          && data.teacherId is string && data.teacherId.size() <= 128
+          && data.className is string && data.className.size() > 0 && data.className.size() <= 200
+          && data.subjectCode is string && data.subjectCode.size() > 0 && data.subjectCode.size() <= 50
+          && data.sessionCode is string && data.sessionCode.size() > 0 && data.sessionCode.size() <= 50
+          && data.isActive is bool
+          && data.createdAt is string
+          && data.expiresAt is string
+          && data.durationMinutes is int;
+    }
+
+    // 3. ATTENDANCE RECORDS
+    match /attendance/{recordId} {
+      // Students can only read their own receipts. Teachers can read all rosters.
+      allow get: if isSignedIn() 
+                 && (resource.data.studentId == request.auth.uid 
+                     || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher");
+                     
+      allow list: if isSignedIn() 
+                 && (resource.data.studentId == request.auth.uid 
+                     || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher");
+
+      // Students can submit present state attendance
+      allow create: if isSignedIn()
+                    && isValidId(recordId)
+                    && isValidRecord(request.resource.data)
+                    && request.resource.data.studentId == request.auth.uid;
+                    
+      allow update: if false; // Attendance once marked is absolute and immutable
+      allow delete: if false; // No deletion permitted
+    }
+
+    function isValidRecord(data) {
+      return data.id is string && data.id.size() <= 128
+          && data.sessionId is string && data.sessionId.size() <= 128
+          && data.sessionCode is string && data.sessionCode.size() <= 100
+          && data.className is string && data.className.size() > 0 && data.className.size() <= 200
+          && data.subjectCode is string && data.subjectCode.size() > 0 && data.subjectCode.size() <= 50
+          && data.studentId is string && data.studentId.size() <= 128
+          && data.studentName is string && data.studentName.size() > 0 && data.studentName.size() <= 200
+          && data.studentEmail is string && data.studentEmail.size() > 0 && data.studentEmail.size() <= 200
+          && data.studentRegNo is string && data.studentRegNo.size() > 0 && data.studentRegNo.size() <= 100
+          && data.scannedAt is string
+          && data.checkInMethod is string && (data.checkInMethod == "qr_scan" || data.checkInMethod == "manual_code")
+          && data.status is string && (data.status == "present" || data.status == "late");
+    }
+  }
+}

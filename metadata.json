@@ -1,0 +1,6 @@
+{
+  "name": "QR Code Attendance System",
+  "description": "A responsive system where teachers generate QR codes for class sessions and students scan them or input codes to verify attendance.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
