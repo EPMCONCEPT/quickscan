@@ -1,0 +1,8 @@
+{
+  "appId": "com.group7.qrattendance",
+  "appName": "QR Code Student Attendance",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
