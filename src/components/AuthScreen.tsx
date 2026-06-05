@@ -19,12 +19,14 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
   const [department, setDepartment] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isOperationNotAllowed, setIsOperationNotAllowed] = useState<boolean>(false);
+  const [isEmailAlreadyInUse, setIsEmailAlreadyInUse] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setIsOperationNotAllowed(false);
+    setIsEmailAlreadyInUse(false);
     setIsLoading(true);
 
     if (!email || !password) {
@@ -102,6 +104,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
       let friendlyMessage = err.message || "Authentication failed.";
       if (err.code === 'auth/email-already-in-use') {
         friendlyMessage = "These credentials or email are already associated with an account.";
+        setIsEmailAlreadyInUse(true);
       } else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
         friendlyMessage = "Incorrect email address or password.";
       } else if (err.code === 'auth/operation-not-allowed' || (err.message && err.message.includes('operation-not-allowed'))) {
@@ -136,7 +139,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
         {/* Mode Selector Tab */}
         <div className="grid grid-cols-2 p-1 bg-slate-950 rounded-xl mb-6 border border-slate-800">
           <button
-            onClick={() => { setIsLogin(true); setErrorMessage(''); setIsOperationNotAllowed(false); }}
+            onClick={() => { setIsLogin(true); setErrorMessage(''); setIsOperationNotAllowed(false); setIsEmailAlreadyInUse(false); }}
             className={`py-2 text-center text-sm font-medium rounded-lg transition-all ${
               isLogin 
                 ? 'bg-slate-800 text-white shadow' 
@@ -146,7 +149,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
             Log In
           </button>
           <button
-            onClick={() => { setIsLogin(false); setErrorMessage(''); setIsOperationNotAllowed(false); }}
+            onClick={() => { setIsLogin(false); setErrorMessage(''); setIsOperationNotAllowed(false); setIsEmailAlreadyInUse(false); }}
             className={`py-2 text-center text-sm font-medium rounded-lg transition-all ${
               !isLogin 
                 ? 'bg-slate-800 text-white shadow' 
@@ -160,6 +163,29 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
         {errorMessage && (
           <div className="text-xs bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2.5 rounded-lg mb-4 leading-relaxed">
             {errorMessage}
+          </div>
+        )}
+
+        {isEmailAlreadyInUse && (
+          <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-200 text-xs space-y-3 mb-6 animate-fadeIn">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-blue-300 text-sm">Email Already in Use</p>
+                <p className="mt-1 text-slate-300 leading-relaxed">
+                  Every account (Teacher or Student) must have a <strong>unique</strong> email address.
+                </p>
+              </div>
+            </div>
+            
+            <div className="text-slate-300 space-y-2 leading-relaxed">
+              <p>
+                If you already registered a <strong>Teacher</strong> account using this email address, you cannot reuse the same email for a Student account. Firebase requires each account to have its own unique email. Please register with a different, unique email address!
+              </p>
+              <p>
+                If you already created your <strong>Student</strong> account, click the <strong>"Log In"</strong> tab above to sign into your Student interface.
+              </p>
+            </div>
           </div>
         )}
 
